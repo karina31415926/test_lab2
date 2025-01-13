@@ -14,8 +14,8 @@ void BarnesHutSimulation::simulate_epochs(Plotter& plotter, Universe& universe, 
 void BarnesHutSimulation::simulate_epoch(Plotter& plotter, Universe& universe, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs) {
     Quadtree quadtree(universe, universe.get_bounding_box(), 2); // Mode 2: Parallel construction with cut-off
 
-    quadtree.calculate_cumulative_masses();
-    quadtree.calculate_center_of_mass();
+    quadtree.calculate_cumulative_masses(universe);
+    quadtree.calculate_center_of_mass(universe);
 
     calculate_forces(universe, quadtree);
 
@@ -34,45 +34,58 @@ void BarnesHutSimulation::simulate_epoch(Plotter& plotter, Universe& universe, b
 }
 
 void BarnesHutSimulation::get_relevant_nodes(Universe& universe, Quadtree& quadtree, std::vector<QuadtreeNode*>& relevant_nodes, Vector2d<double>& body_position, std::int32_t body_index, double threshold_theta) {
-    // Initialize the stack with the root node of the quadtree
+    // Stack für Tiefensuche initialisieren, beginnend mit der Wurzel des Quadtrees
     std::vector<QuadtreeNode*> stack;
     stack.push_back(quadtree.root);
 
     while (!stack.empty()) {
-        // Pop the top node from the stack
+        // Nächsten Knoten vom Stack nehmen
         QuadtreeNode* node = stack.back();
         stack.pop_back();
 
+        // Berechne den Durchmesser des Quadranten und die Distanz zwischen Körper K und dem Schwerpunkt
         double d = node->bounding_box.get_diagonal();
         Vector2d<double> delta = body_position - node->center_of_mass;
- 
-        double r_squared = delta[0] * delta[0] + delta[1] * delta[1];
 
-        // Avoid division by zero
-        if (r_squared == 0) {
-            r_squared = std::numeric_limits<double>::epsilon();
+        double r_squared = delta[0] * delta[0] + delta[1] * delta[1];
+        double r = std::sqrt(r_squared);
+
+        // Verhindere Division durch Null
+        if (r == 0.0) {
+            r = std::numeric_limits<double>::epsilon();
         }
 
-        double theta_squared = (d * d) / r_squared;
+        double theta = d / r;
+        std::cout << theta;
+        // Fall 1: Der Knoten ist ein Blattknoten (ohne Kinder)
+        if (node->children.empty()) {
+            // Wenn der Knoten nur Körper K enthält, ist er nicht relevant
+            if (node->body_identifier == body_index) {
+                continue;
+            }
 
-        // Debug output
-        std::cout << "Node ID: " << node->body_identifier << ", r_squared: " << r_squared << ", theta_squared: " << theta_squared << std::endl;
-
-
-        if (node->body_identifier == body_index) {
-            if (node->children.empty()) {
+            // Wenn der Knoten genau einen Körper enthält, ist er immer relevant
+            if (node->cumulative_mass > 0) {
                 relevant_nodes.push_back(node);
             }
-        } else if (theta_squared <= threshold_theta * threshold_theta) {
+        }
+        // Fall 2: Theta < threshold_theta, der Knoten ist relevant
+        else if (theta < threshold_theta ) {
             relevant_nodes.push_back(node);
-        } else {
-            // If the node is not relevant, push its children onto the stack
-            for (auto* child : node->children) {
-                stack.push_back(child);
+        }
+        // Fall 3: Theta >= threshold_theta, den Knoten weiter aufteilen
+        else {
+            for (QuadtreeNode* child : node->children) {
+                if (child != nullptr) {
+                    stack.push_back(child);
+                }
             }
         }
     }
 }
+
+
+
 void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtree) {
     const double threshold_theta = 0.2;
 

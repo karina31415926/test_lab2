@@ -109,8 +109,8 @@ TEST_F(Ex3Test, test_three_g){
     // construct quadtree sequentially
     BoundingBox BB = uni.get_bounding_box();
     Quadtree qt(uni, BB, 0);
-    qt.calculate_cumulative_masses();
-    qt.calculate_center_of_mass();
+    qt.calculate_cumulative_masses(uni);
+    qt.calculate_center_of_mass(uni);
 
     // check if all center of masses are ready
 

@@ -1,53 +1,39 @@
 #include "quadtreeNode.h"
 #include "structures/universe.h"
-#include <iostream>
 
-
-double QuadtreeNode::calculate_node_cumulative_mass() {
-    // If cumulative mass has already been calculated, return it.
+double QuadtreeNode::calculate_node_cumulative_mass(Universe& universe) {
+    // If cumulative mass has already been calculated, return it
     if (cumulative_mass_ready) {
         return cumulative_mass;
     }
 
+    // Reset cumulative mass to ensure it is calculated fresh
     cumulative_mass = 0.0;
 
-    // Get the global Universe instance
-    Universe& universe = Universe::get_instance();  
+    // If the node is a leaf, sum up the masses of bodies inside the bounding box
+    if (children.empty()) {
+        for (int i = 0; i < universe.num_bodies; ++i) {
+            const Vector2d<double>& pos = universe.positions[i];
+            double mass = universe.weights[i];
 
-    // Debug: Print bounding box for this node
-    std::cout << "Checking node's bounding box: x_min = " << bounding_box.x_min 
-              << ", x_max = " << bounding_box.x_max 
-              << ", y_min = " << bounding_box.y_min 
-              << ", y_max = " << bounding_box.y_max << std::endl;
-
-    // Iterate through the bodies in the universe
-    for (int i = 0; i < universe.num_bodies; ++i) {
-        const Vector2d<double>& pos = universe.positions[i];
-
-        // Debug: Print body position
-        std::cout << "Checking body " << i << ": Position (" << pos[0] << ", " << pos[1] << "), Mass: " << universe.weights[i] << std::endl;
-
-        // Check if the body is inside the current QuadtreeNode's bounding box
-        if (pos[0] >= bounding_box.x_min && pos[0] <= bounding_box.x_max &&
-            pos[1] >= bounding_box.y_min && pos[1] <= bounding_box.y_max) {
-            // If the body is within the bounding box, add its mass to the cumulative mass
-            cumulative_mass += universe.weights[i];  // Assuming `weights` holds the mass of each body
-            // Debug: Print the cumulative mass after adding a body
-            std::cout << "   Inside node, Adding mass: " << universe.weights[i] 
-                      << ", Updated cumulative mass: " << cumulative_mass << std::endl;
+            // Check if the body is within the bounding box
+            if (pos[0] >= bounding_box.x_min && pos[0] <= bounding_box.x_max &&
+                pos[1] >= bounding_box.y_min && pos[1] <= bounding_box.y_max) {
+                cumulative_mass += mass;
+            }
+        }
+    }
+    else {
+        // If the node has children, recursively calculate their cumulative masses
+        for (QuadtreeNode* child : children) {
+            cumulative_mass += child->calculate_node_cumulative_mass(universe);
         }
     }
 
-    // Mark the cumulative mass as calculated
+    // Mark as calculated
     cumulative_mass_ready = true;
-
-    // Debug: Print final cumulative mass for this node
-    std::cout << "Final cumulative mass for this node: " << cumulative_mass << std::endl;
-
     return cumulative_mass;
 }
-
-
 
 QuadtreeNode::QuadtreeNode(BoundingBox arg_bounding_box)
     : bounding_box(arg_bounding_box), body_identifier(-1), cumulative_mass(0.0),
@@ -60,74 +46,57 @@ QuadtreeNode::~QuadtreeNode() {
     children.clear();
 }
 
-Vector2d<double> QuadtreeNode::calculate_node_center_of_mass() {
+Vector2d<double> QuadtreeNode::calculate_node_center_of_mass(Universe& universe) {
     // If the center of mass has already been calculated, return it
     if (center_of_mass_ready) {
-        return center_of_mass;  // Return the calculated center of mass
+        return center_of_mass;
     }
 
-    // If there is only one body in the node, return its position as the center of mass
-    if (cumulative_mass_ready && cumulative_mass > 0.0) {
-        // Create a temporary Vector2d to accumulate the weighted sum of positions
-        Vector2d<double> node_center_of_mass(0.0, 0.0);
-        Universe& universe = Universe::get_instance();
+    if (children.empty()) {
+        // Leaf node: Compute the center of mass directly from bodies in the bounding box
+        Vector2d<double> total_position(0.0, 0.0);
 
-        // Iterate through the bodies in the universe
         for (int i = 0; i < universe.num_bodies; ++i) {
             const Vector2d<double>& pos = universe.positions[i];
+            double mass = universe.weights[i];
 
-            // Debug: Print position and mass of each body being considered
-            std::cout << "Checking body " << i << ": Position (" << pos[0] << ", " << pos[1] << "), Mass: " << universe.weights[i] << std::endl;
-
-            // Check if the body is inside the current QuadtreeNode's bounding box
             if (pos[0] >= bounding_box.x_min && pos[0] <= bounding_box.x_max &&
                 pos[1] >= bounding_box.y_min && pos[1] <= bounding_box.y_max) {
-                // Accumulate the weighted position
-                double mass = universe.weights[i];
-                node_center_of_mass.set(node_center_of_mass[0] + pos[0] * mass,
-                    node_center_of_mass[1] + pos[1] * mass);
-                std::cout << "   Inside node, Accumulated center of mass: ("
-                    << node_center_of_mass[0] << ", " << node_center_of_mass[1] << ")\n";
+                total_position.set(total_position[0] + pos[0] * mass,
+                    total_position[1] + pos[1] * mass);
             }
         }
 
-        // Normalize by the total mass to get the center of mass
         if (cumulative_mass > 0) {
-            node_center_of_mass.set(node_center_of_mass[0] / cumulative_mass,
-                node_center_of_mass[1] / cumulative_mass);
+            center_of_mass.set(total_position[0] / cumulative_mass,
+                total_position[1] / cumulative_mass);
+        }
+    }
+    else {
+        // Internal node: Calculate center of mass recursively from children
+        Vector2d<double> weighted_center(0.0, 0.0);
+        double total_mass = 0.0;
+
+        for (QuadtreeNode* child : children) {
+            Vector2d<double> child_center_of_mass = child->calculate_node_center_of_mass(universe);
+
+            // Accumulate weighted center of mass
+            weighted_center.set(weighted_center[0] + child_center_of_mass[0] * child->cumulative_mass,
+                weighted_center[1] + child_center_of_mass[1] * child->cumulative_mass);
+            total_mass += child->cumulative_mass;
+
+            // Mark child node's center of mass as ready
+            child->center_of_mass_ready = true;
         }
 
-        // Mark as calculated
-        center_of_mass_ready = true;
-        std::cout << "Final center of mass for this node: (" << node_center_of_mass[0] << ", " << node_center_of_mass[1] << ")\n";
-        return node_center_of_mass;
+        if (total_mass > 0) {
+            center_of_mass.set(weighted_center[0] / total_mass,
+                weighted_center[1] / total_mass);
+        }
     }
 
-    // If there are sub-quadrants, recursively calculate their center of mass
-    double total_mass = 0.0;
-    Vector2d<double> weighted_center_of_mass(0.0, 0.0);
-
-    // Recursively calculate the center of mass for each sub-quadrant
-    for (QuadtreeNode* child : children) {
-        Vector2d<double> child_center_of_mass = child->calculate_node_center_of_mass();
-
-        // Debug: Print the center of mass of the child node
-        std::cout << "Child node center of mass: (" << child_center_of_mass[0] << ", " << child_center_of_mass[1] << "), Mass: " << child->cumulative_mass << std::endl;
-
-        // Add the weighted center of mass of the child to the total center of mass
-        total_mass += child->cumulative_mass;
-        weighted_center_of_mass.set(weighted_center_of_mass[0] + child_center_of_mass[0] * child->cumulative_mass,
-            weighted_center_of_mass[1] + child_center_of_mass[1] * child->cumulative_mass);
-    }
-
-    // Set the current node's center of mass by normalizing with the total mass
-    if (total_mass > 0) {
-        weighted_center_of_mass.set(weighted_center_of_mass[0] / total_mass,
-            weighted_center_of_mass[1] / total_mass);
-    }
-
-    // Mark as calculated
+    // Mark this node's center of mass as ready
     center_of_mass_ready = true;
-    std::cout << "Final center of mass for this parent node: (" << weighted_center_of_mass[0] << ", " << weighted_center_of_mass[1] << ")\n";
-    return weighted_center_of_mass;
+
+    return center_of_mass;
 }

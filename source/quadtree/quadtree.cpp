@@ -48,12 +48,12 @@ Quadtree::~Quadtree() {
     delete root;  // Lösche den Wurzelknoten und seine Kinder rekursiv
 }
 
-void Quadtree::calculate_cumulative_masses() {
-    root->calculate_node_cumulative_mass();
+void Quadtree::calculate_cumulative_masses(Universe& universe) {
+    root->calculate_node_cumulative_mass(universe);
 }
 
-void Quadtree::calculate_center_of_mass() {
-    root->calculate_node_center_of_mass();
+void Quadtree::calculate_center_of_mass(Universe& universe) {
+    root->calculate_node_center_of_mass(universe);
 }
 
 
