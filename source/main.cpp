@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
 	auto output_image_width = std::uint32_t{800};
 	auto output_image_height = std::uint32_t{800};
 	//auto output_path = std::filesystem::path{"INVALID"};
-	auto output_path = std::string{"INVALID"};
+	auto output_path = std::string{"/work/scratch/kurse/kurs00084/kp51howe"};
 	auto save_universe_path = std::filesystem::path{"./universe.txt"};
 	auto load_universe_path = std::filesystem::path{"./NOTHING_TO_LOAD"};
 	bool output_intermediate_states = bool{true};
