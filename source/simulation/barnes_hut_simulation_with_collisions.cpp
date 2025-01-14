@@ -2,6 +2,7 @@
 #include "simulation/barnes_hut_simulation.h"
 #include "simulation/naive_parallel_simulation.h"
 #include <omp.h>
+#include <algorithm>
 
 void BarnesHutSimulationWithCollisions::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs) {
     for (int i = 0; i < num_epochs; i++) {
