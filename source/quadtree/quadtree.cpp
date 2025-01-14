@@ -7,7 +7,7 @@
 #include <omp.h>
 
 //Cut-Off-Wert für construct_task_with_cutoff
-const int cutoff_threshold = 10000;
+const int cutoff_threshold = 0;
 
 
 Quadtree::Quadtree(Universe& universe, BoundingBox bounding_box, std::int8_t construct_mode) {
