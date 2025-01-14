@@ -20,7 +20,7 @@
 int main(int argc, char** argv) {
 	auto lab_cli_app = CLI::App{ "" };
 
-	auto number_epochs = std::uint32_t{ 100 };
+	auto number_epochs = std::uint32_t{ 1000 };
 	auto output_image_width = std::uint32_t{800};
 	auto output_image_height = std::uint32_t{800};
 	//auto output_path = std::filesystem::path{"INVALID"};
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 	auto load_universe_path = std::filesystem::path{"./NOTHING_TO_LOAD"};
 	bool output_intermediate_states = bool{true};
 	bool save_initial_universe = bool{true};
-	auto num_bodies = std::uint32_t{100};
+	auto num_bodies = std::uint32_t{1000};
 	auto plot_intermediate_epochs = std::uint32_t{5};
 	auto plot_bounding_box_scale = std::uint32_t{5};
 	auto universe_generator = std::uint32_t{ 0 };
