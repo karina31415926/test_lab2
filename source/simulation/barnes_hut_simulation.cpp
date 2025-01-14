@@ -56,7 +56,7 @@ void BarnesHutSimulation::get_relevant_nodes(Universe& universe, Quadtree& quadt
         }
 
         double theta = d / r;
-        std::cout << theta;
+ 
         // Fall 1: Der Knoten ist ein Blattknoten (ohne Kinder)
         if (node->children.empty()) {
             // Wenn der Knoten nur Körper K enthält, ist er nicht relevant
