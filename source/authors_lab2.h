@@ -1,6 +1,6 @@
 #pragma once
 
-#define AUTHORS_TWO_A "Lukas Rothenberger"
+#define AUTHORS_TWO_A "Karina Pikul"
 #define AUTHORS_TWO_B "Marcel Weidenmüller"
 #define AUTHORS_TWO_C "Marcel Weidenmüller"
 #define AUTHORS_TWO_D "Marcel Weidenmüller"
