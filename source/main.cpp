@@ -20,7 +20,7 @@
 int main(int argc, char** argv) {
 	auto lab_cli_app = CLI::App{ "" };
 
-	auto number_epochs = std::uint32_t{ 1000 };
+	auto number_epochs = std::uint32_t{ 100 };
 	auto output_image_width = std::uint32_t{800};
 	auto output_image_height = std::uint32_t{800};
 	//auto output_path = std::filesystem::path{"INVALID"};
