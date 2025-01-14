@@ -188,7 +188,6 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
         QuadtreeNode* node = new QuadtreeNode(BB);
         node->body_identifier = body_indices[0];  // Set the body index in the leaf node
         nodes.push_back(node);
-        std::cout << "Created leaf node with " << body_indices.size() << " bodies." << std::endl;
     }
     else {
         // Calculate the boundaries for the 4 subquadrants
