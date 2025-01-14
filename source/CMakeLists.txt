@@ -53,6 +53,13 @@ target_link_libraries(lab PRIVATE lab_lib)
 target_link_libraries(lab PRIVATE CLI11::CLI11)
 set_target_properties(lab PROPERTIES ENABLE_EXPORTS 1)
 
+# Add stdc++fs for GCC versions requiring it
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+        target_link_libraries(lab PRIVATE stdc++fs)
+    endif()
+endif()
+
 target_link_libraries(lab_lib PUBLIC project_options project_libraries)
 
 get_target_property(lab_lib_sources lab_lib SOURCES)
