@@ -16,7 +16,11 @@ void BarnesHutSimulationWithCollisions::simulate_epoch(Plotter& plotter, Univers
     BarnesHutSimulation::simulate_epoch(plotter, universe, create_intermediate_plots, plot_intermediate_epochs);
 
     // Detect and handle collisions
+    std::cout << "Running parallel collision detection..." << std::endl;
     find_collisions_parallel(universe);
+
+    std::cout << "Running non-parallel collision detection..." << std::endl;
+    find_collisions(universe);
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe) {
