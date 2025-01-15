@@ -1,4 +1,4 @@
-#include "simulation/barnes_hut_simulation.h"
+ï»¿#include "simulation/barnes_hut_simulation.h"
 #include "simulation/naive_parallel_simulation.h"
 #include "physics/gravitation.h"
 #include "physics/mechanics.h"
@@ -34,16 +34,16 @@ void BarnesHutSimulation::simulate_epoch(Plotter& plotter, Universe& universe, b
 }
 
 void BarnesHutSimulation::get_relevant_nodes(Universe& universe, Quadtree& quadtree, std::vector<QuadtreeNode*>& relevant_nodes, Vector2d<double>& body_position, std::int32_t body_index, double threshold_theta) {
-    // Stack für Tiefensuche initialisieren, beginnend mit der Wurzel des Quadtrees
+    // Stack fÃ¼r Tiefensuche initialisieren, beginnend mit der Wurzel des Quadtrees
     std::vector<QuadtreeNode*> stack;
     stack.push_back(quadtree.root);
 
     while (!stack.empty()) {
-        // Nächsten Knoten vom Stack nehmen
+        // NÃ¤chsten Knoten vom Stack nehmen
         QuadtreeNode* node = stack.back();
         stack.pop_back();
 
-        // Berechne den Durchmesser des Quadranten und die Distanz zwischen Körper K und dem Schwerpunkt
+        // Berechne den Durchmesser des Quadranten und die Distanz zwischen KÃ¶rper K und dem Schwerpunkt
         double d = node->bounding_box.get_diagonal();
         Vector2d<double> delta = body_position - node->center_of_mass;
 
@@ -59,24 +59,25 @@ void BarnesHutSimulation::get_relevant_nodes(Universe& universe, Quadtree& quadt
  
         // Fall 1: Der Knoten ist ein Blattknoten (ohne Kinder)
         if (node->children.empty()) {
-            // Wenn der Knoten nur Körper K enthält, ist er nicht relevant
+            // Wenn der Knoten nur KÃ¶rper K enthÃ¤lt, ist er nicht relevant
             if (node->body_identifier == body_index) {
                 continue;
             }
 
-            // Wenn der Knoten genau einen Körper enthält, ist er immer relevant
-            if (node->cumulative_mass > 0) {
+            // Wenn der Knoten genau einen KÃ¶rper enthÃ¤lt, ist er immer relevant
+            if (node->calculate_node_cumulative_mass(universe)) {
                 relevant_nodes.push_back(node);
             }
+
         }
         // Fall 2: Theta < threshold_theta, der Knoten ist relevant
         else if (theta < threshold_theta ) {
             relevant_nodes.push_back(node);
         }
-        // Fall 3: Theta >= threshold_theta, den Knoten weiter aufteilen
         else {
+            // Fall 3: Theta >= threshold_theta, den Knoten weiter aufteilen
             for (QuadtreeNode* child : node->children) {
-                if (child != nullptr) {
+                if (child != nullptr && child->body_identifier != body_index) {
                     stack.push_back(child);
                 }
             }
