@@ -48,12 +48,12 @@ Quadtree::~Quadtree() {
     delete root;  // Lösche den Wurzelknoten und seine Kinder rekursiv
 }
 
-void Quadtree::calculate_cumulative_masses(Universe& universe) {
-    root->calculate_node_cumulative_mass(universe);
+void Quadtree::calculate_cumulative_masses() {
+    root->calculate_node_cumulative_mass();
 }
 
-void Quadtree::calculate_center_of_mass(Universe& universe) {
-    root->calculate_node_center_of_mass(universe);
+void Quadtree::calculate_center_of_mass() {
+    root->calculate_node_center_of_mass();
 }
 
 
@@ -64,6 +64,13 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
     if (body_indices.size() == 1) {
         QuadtreeNode* node = new QuadtreeNode(BB);
         node->body_identifier = body_indices[0];  // Setze den Körperindex im Blattknoten
+
+        // Calculate and store the cumulative mass and center of mass for leaf nodes
+        node->cumulative_mass = universe.weights[body_indices[0]];
+        node->center_of_mass = universe.positions[body_indices[0]];
+        node->cumulative_mass_ready = true;
+        node->center_of_mass_ready = true;
+
         nodes.push_back(node);
     }
     else {
@@ -121,6 +128,13 @@ std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, Bounding
     if (body_indices.size() == 1) {
         QuadtreeNode* node = new QuadtreeNode(BB);
         node->body_identifier = body_indices[0]; // Set the body index in the leaf node
+
+        // Calculate and store the cumulative mass and center of mass for leaf nodes
+        node->cumulative_mass = universe.weights[body_indices[0]];
+        node->center_of_mass = universe.positions[body_indices[0]];
+        node->cumulative_mass_ready = true;
+        node->center_of_mass_ready = true;
+
         nodes.push_back(node);
     }
     else {
@@ -187,6 +201,31 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
     if (body_indices.size() <= cutoff_threshold) {
         QuadtreeNode* node = new QuadtreeNode(BB);
         node->body_identifier = body_indices[0];  // Set the body index in the leaf node
+        node->cumulative_mass = 0.0;
+        Vector2d<double> weighted_position(0.0, 0.0);
+
+        // Iteriere über alle Körper im Quadranten und addiere ihre Massen + berechne den gewichteten Massenschwerpunkt
+        for (std::size_t i = 0; i < body_indices.size(); ++i) {
+            std::int32_t body_index = body_indices[i];
+            double body_mass = universe.weights[body_index];
+            const Vector2d<double>& body_position = universe.positions[body_index];
+
+            node->cumulative_mass += body_mass;
+            weighted_position = weighted_position + body_position * body_mass;
+        }
+
+        // Berechne den Massenschwerpunkt des Quadranten
+        if (node->cumulative_mass > 0) {
+            node->center_of_mass = weighted_position / node->cumulative_mass;
+        }
+        else {
+            // Falls keine Masse im Quadranten, setze center_of_mass auf einen Standardwert
+            node->center_of_mass = Vector2d<double>(0.0, 0.0);
+        }
+
+        node->cumulative_mass_ready = true;
+        node->center_of_mass_ready = true;
+
         nodes.push_back(node);
     }
     else {

@@ -5,13 +5,13 @@
 #include "structures/bounding_box.h"
 #include "structures/universe.h"
 
-class QuadtreeNode{
+class QuadtreeNode {
 public:
     QuadtreeNode(BoundingBox arg_bounding_box);
     ~QuadtreeNode();
-    double calculate_node_cumulative_mass(Universe& universe);
-    Vector2d<double> calculate_node_center_of_mass(Universe& universe);
-    std::vector<QuadtreeNode*> children;    
+    double calculate_node_cumulative_mass();
+    Vector2d<double> calculate_node_center_of_mass();
+    std::vector<QuadtreeNode*> children;
     Vector2d<double> center_of_mass;
     double cumulative_mass;
     std::int32_t body_identifier = -1;

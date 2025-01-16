@@ -1,37 +1,29 @@
 #include "quadtreeNode.h"
 #include "structures/universe.h"
 
-double QuadtreeNode::calculate_node_cumulative_mass(Universe& universe) {
-    // If cumulative mass has already been calculated, return it
+double QuadtreeNode::calculate_node_cumulative_mass() {
+    // Wenn die kumulierte Masse bereits berechnet wurde, gib sie zurück
     if (cumulative_mass_ready) {
         return cumulative_mass;
     }
 
-    // Reset cumulative mass to ensure it is calculated fresh
-    cumulative_mass = 0.0;
-
-    // If the node is a leaf, sum up the masses of bodies inside the bounding box
+    // Falls es sich um einen Blattknoten handelt, gib einfach die gespeicherte Masse zurück
     if (children.empty()) {
-        for (int i = 0; i < universe.num_bodies; ++i) {
-            const Vector2d<double>& pos = universe.positions[i];
-            double mass = universe.weights[i];
-
-            // Check if the body is within the bounding box
-            if (pos[0] >= bounding_box.x_min && pos[0] <= bounding_box.x_max &&
-                pos[1] >= bounding_box.y_min && pos[1] <= bounding_box.y_max) {
-                cumulative_mass += mass;
-            }
-        }
-    }
-    else {
-        // If the node has children, recursively calculate their cumulative masses
-        for (QuadtreeNode* child : children) {
-            cumulative_mass += child->calculate_node_cumulative_mass(universe);
-        }
+        // cummulative_mass sollte bereits im Knoten gesetzt worden sein, daher gibt es hier nichts mehr zu tun
+        cumulative_mass_ready = true; // Sicherstellen, dass der Wert als berechnet markiert wird
+        return cumulative_mass;
     }
 
-    // Mark as calculated
+    // Wenn es sich um einen inneren Knoten handelt, berechne die kumulierte Masse der Kinder
+    cumulative_mass = 0.0;
+    for (auto* child : children) {
+        // Rekursive Berechnung der kumulierten Masse für jedes Kind
+        cumulative_mass += child->calculate_node_cumulative_mass();
+    }
+
+    // Nachdem die kumulierte Masse berechnet wurde, markiere den Knoten als "fertig"
     cumulative_mass_ready = true;
+
     return cumulative_mass;
 }
 
@@ -46,57 +38,39 @@ QuadtreeNode::~QuadtreeNode() {
     children.clear();
 }
 
-Vector2d<double> QuadtreeNode::calculate_node_center_of_mass(Universe& universe) {
-    // If the center of mass has already been calculated, return it
+Vector2d<double> QuadtreeNode::calculate_node_center_of_mass() {
     if (center_of_mass_ready) {
+        return center_of_mass;  // Wenn bereits berechnet, gib den gespeicherten Wert zurück
+    }
+
+    // Wenn der Knoten ein Blattknoten ist
+    if (children.empty()) {
+        // Die Position des Körpers ist der Massenschwerpunkt des Blattknotens
+        center_of_mass_ready = true;
         return center_of_mass;
     }
 
-    if (children.empty()) {
-        // Leaf node: Compute the center of mass directly from bodies in the bounding box
-        Vector2d<double> total_position(0.0, 0.0);
+    // Andernfalls müssen wir den Massenschwerpunkt der Kinder berechnen
+    double total_mass = 0.0;
+    Vector2d<double> weighted_position(0.0, 0.0);
 
-        for (int i = 0; i < universe.num_bodies; ++i) {
-            const Vector2d<double>& pos = universe.positions[i];
-            double mass = universe.weights[i];
+    for (auto* child : children) {
+        // Rekursiv den Massenschwerpunkt jedes Kindes berechnen
+        Vector2d<double> child_center_of_mass = child->calculate_node_center_of_mass();
+        double child_mass = child->calculate_node_cumulative_mass();
 
-            if (pos[0] >= bounding_box.x_min && pos[0] <= bounding_box.x_max &&
-                pos[1] >= bounding_box.y_min && pos[1] <= bounding_box.y_max) {
-                total_position.set(total_position[0] + pos[0] * mass,
-                    total_position[1] + pos[1] * mass);
-            }
-        }
+        weighted_position = weighted_position + child_center_of_mass * child_mass;
+        total_mass += child_mass;
+    }
 
-        if (cumulative_mass > 0) {
-            center_of_mass.set(total_position[0] / cumulative_mass,
-                total_position[1] / cumulative_mass);
-        }
+    // Berechne den Massenschwerpunkt des aktuellen Knotens
+    if (total_mass > 0) {
+        center_of_mass = weighted_position / total_mass;
     }
     else {
-        // Internal node: Calculate center of mass recursively from children
-        Vector2d<double> weighted_center(0.0, 0.0);
-        double total_mass = 0.0;
-
-        for (QuadtreeNode* child : children) {
-            Vector2d<double> child_center_of_mass = child->calculate_node_center_of_mass(universe);
-
-            // Accumulate weighted center of mass
-            weighted_center.set(weighted_center[0] + child_center_of_mass[0] * child->cumulative_mass,
-                weighted_center[1] + child_center_of_mass[1] * child->cumulative_mass);
-            total_mass += child->cumulative_mass;
-
-            // Mark child node's center of mass as ready
-            child->center_of_mass_ready = true;
-        }
-
-        if (total_mass > 0) {
-            center_of_mass.set(weighted_center[0] / total_mass,
-                weighted_center[1] / total_mass);
-        }
+        center_of_mass = Vector2d<double>(0.0, 0.0); // Falls keine Masse, setze den Standardwert
     }
 
-    // Mark this node's center of mass as ready
     center_of_mass_ready = true;
-
     return center_of_mass;
 }
